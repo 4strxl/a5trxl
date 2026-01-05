@@ -55,11 +55,26 @@ local function sendChat(msg)
 end
 
 -------------------------------------------------
--- SAFE CHAT QUEUE (NO COOLDOWN WARNINGS)
+-- FASTEST SAFE CHAT QUEUE (MAX ROBLOX SPEED)
 -------------------------------------------------
 local ChatQueue = {}
 local sending = false
-local CHAT_DELAY = 1.1 -- safe delay
+
+local CHAT_DELAY = 0.9   -- start aggressive
+local MIN_DELAY = 0.9
+local MAX_DELAY = 1.4
+
+local function safeSend(msg)
+    local ok = pcall(function()
+        sendChat(msg)
+    end)
+
+    if not ok then
+        CHAT_DELAY = math.min(CHAT_DELAY + 0.1, MAX_DELAY)
+    else
+        CHAT_DELAY = math.max(CHAT_DELAY - 0.02, MIN_DELAY)
+    end
+end
 
 local function processQueue()
     if sending then return end
@@ -67,10 +82,7 @@ local function processQueue()
 
     task.spawn(function()
         while #ChatQueue > 0 do
-            local msg = table.remove(ChatQueue,1)
-            pcall(function()
-                sendChat(msg)
-            end)
+            safeSend(table.remove(ChatQueue,1))
             task.wait(CHAT_DELAY)
         end
         sending = false
@@ -152,39 +164,13 @@ holder.Position = UDim2.fromOffset(8,46)
 holder.Size = UDim2.new(1,-16,1,-54)
 holder.BackgroundTransparency = 1
 
--- MINIMIZE FUNCTION
+-- MINIMIZE
 local minimized = false
 minBtn.Activated:Connect(function()
     minimized = not minimized
     holder.Visible = not minimized
     main.Size = minimized and UDim2.fromOffset(300,38) or UDim2.fromOffset(300,380)
 end)
-
--- DRAGGING
-do
-    local dragging, dragStart, startPos
-    top.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = i.Position
-            startPos = main.Position
-            i.Changed:Connect(function()
-                if i.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-    top.InputChanged:Connect(function(i)
-        if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = i.Position - dragStart
-            main.Position = UDim2.fromOffset(
-                startPos.X.Offset + delta.X,
-                startPos.Y.Offset + delta.Y
-            )
-        end
-    end)
-end
 
 -- LIST
 local list = Instance.new("ScrollingFrame",holder)
@@ -197,11 +183,10 @@ list.BorderSizePixel = 0
 local layout = Instance.new("UIListLayout",list)
 layout.Padding = UDim.new(0,6)
 
--- SESSION TARGET
+-- TRACKING
 local lastTarget
 local trackedPlayers = {}
 
--- TRACK PLAYER
 local function trackPlayer(plr)
     if trackedPlayers[plr] then return end
     trackedPlayers[plr] = true
@@ -227,7 +212,7 @@ local function trackPlayer(plr)
     plr.CharacterAdded:Connect(onChar)
 end
 
--- SPAM FUNCTION
+-- SPAM
 local function spamPlayer(plr)
     lastTarget = plr
 
@@ -235,11 +220,11 @@ local function spamPlayer(plr)
         queueChat(cmd.." "..plr.Name)
     end
 
-    notify("Sent","Queued spam @"..plr.Name)
+    notify("Sent","Queued @"..plr.Name)
     trackPlayer(plr)
 end
 
--- BUTTON CREATOR
+-- BUTTON
 local function spamButton(plr)
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1,-6,0,34)
@@ -259,7 +244,7 @@ local function spamButton(plr)
     return b
 end
 
--- REFRESH LIST
+-- REFRESH
 local function refreshList()
     for _,v in ipairs(list:GetChildren()) do
         if v:IsA("TextButton") then v:Destroy() end
