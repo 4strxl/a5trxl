@@ -54,7 +54,7 @@ local function sendChat(msg)
     end
 end
 
--- CHAT QUEUE WITH 0.3 SECOND DELAY
+-- CHAT QUEUE WITH 0.1 SECOND DELAY
 local ChatQueue = {}
 local sending = false
 
@@ -65,7 +65,7 @@ local function processQueue()
         while #ChatQueue > 0 do
             local msg = table.remove(ChatQueue,1)
             sendChat(msg)
-            task.wait(0.3)  -- 0.3 second cooldown between commands
+            task.wait(0.1)  -- 0.1 second cooldown between commands
         end
         sending = false
     end)
@@ -222,7 +222,7 @@ end
 local function spamPlayer(plr)
     lastTarget = plr
 
-    -- Queue all commands with 0.3s cooldown
+    -- Queue all commands with 0.1s cooldown
     for _, cmd in ipairs(COMMANDS) do
         queueChat(cmd.." "..plr.Name)
     end
