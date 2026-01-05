@@ -54,24 +54,18 @@ local function sendChat(msg)
     end
 end
 
--------------------------------------------------
--- SAFE CHAT QUEUE (NO COOLDOWN WARNINGS)
--------------------------------------------------
+-- CHAT QUEUE WITH 0.3 SECOND DELAY
 local ChatQueue = {}
 local sending = false
-local CHAT_DELAY = 1.1 -- safe delay
 
 local function processQueue()
     if sending then return end
     sending = true
-
     task.spawn(function()
         while #ChatQueue > 0 do
             local msg = table.remove(ChatQueue,1)
-            pcall(function()
-                sendChat(msg)
-            end)
-            task.wait(CHAT_DELAY)
+            sendChat(msg)
+            task.wait(0.3)  -- 0.3 second cooldown between commands
         end
         sending = false
     end)
@@ -81,7 +75,6 @@ local function queueChat(msg)
     table.insert(ChatQueue,msg)
     processQueue()
 end
--------------------------------------------------
 
 -- CLEAN OLD GUI
 pcall(function()
@@ -146,13 +139,12 @@ minBtn.BackgroundColor3 = PURPLE_DARK
 minBtn.BorderSizePixel = 0
 Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0,8)
 
--- CONTENT HOLDER
+-- MINIMIZE FUNCTION
 local holder = Instance.new("Frame",main)
 holder.Position = UDim2.fromOffset(8,46)
 holder.Size = UDim2.new(1,-16,1,-54)
 holder.BackgroundTransparency = 1
 
--- MINIMIZE FUNCTION
 local minimized = false
 minBtn.Activated:Connect(function()
     minimized = not minimized
@@ -201,7 +193,6 @@ layout.Padding = UDim.new(0,6)
 local lastTarget
 local trackedPlayers = {}
 
--- TRACK PLAYER
 local function trackPlayer(plr)
     if trackedPlayers[plr] then return end
     trackedPlayers[plr] = true
@@ -231,11 +222,12 @@ end
 local function spamPlayer(plr)
     lastTarget = plr
 
-    for _,cmd in ipairs(COMMANDS) do
+    -- Queue all commands with 0.3s cooldown
+    for _, cmd in ipairs(COMMANDS) do
         queueChat(cmd.." "..plr.Name)
     end
 
-    notify("Sent","Queued spam @"..plr.Name)
+    notify("Sent","Max-speed spam @"..plr.Name)
     trackPlayer(plr)
 end
 
